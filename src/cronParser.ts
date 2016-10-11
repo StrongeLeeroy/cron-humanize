@@ -28,7 +28,10 @@ export class CronParser {
         SEP: 'September',
         OCT: 'October',
         NOV: 'November',
-        DEC: 'December'
+        DEC: 'December',
+        getKey: function(key: string) {
+            return this[key];
+        }
     };
 
     private monthArray = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -36,7 +39,8 @@ export class CronParser {
     public humanize(expression: string): string {
         let detail = this.dissect(expression);
 
-        let yearString = `during ${this.getYearString(detail.year)}.`
+        let yearString = `during ${this.getYearString(detail.year)}.`;
+        return '';
     }
 
     public getTime(seconds: string, minutes: string, hours: string): string {
@@ -96,7 +100,7 @@ export class CronParser {
     public getMonthName(month: string): string {
         let parsed = parseInt(month);
         if (isNaN(parsed)) {
-            return this.months[month];
+            return this.months.getKey(month);
         } else if (typeof parsed === 'number') {
             return this.monthArray[parsed];
         }

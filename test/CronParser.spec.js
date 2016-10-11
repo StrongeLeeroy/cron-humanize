@@ -1,6 +1,6 @@
 "use strict";
 var expect = require('chai').expect;
-var CronParser = require('../src/index').CronParser;
+var CronParser = require('../dist/cronParser').CronParser;
 let parser = new CronParser();
 
 describe('getMonthName', function() {
