@@ -5,4 +5,3 @@ node_js:
 before_script:
   - npm i -g typescript
   - npm run build
-  - npm run test
