@@ -39,12 +39,7 @@ var CronParser = (function () {
     }
     CronParser.prototype.humanize = function (expression) {
         var detail = this.dissect(expression);
-        var yearString = "during " + this.getYearString(detail.year) + ".";
-        return '';
-    };
-    CronParser.prototype.getTime = function (seconds, minutes, hours) {
-        var timeString = '';
-        return timeString;
+        return this.getMonthString(detail.month) + this.getYearString(detail.year);
     };
     CronParser.prototype.dissect = function (expression) {
         var exprArray = expression.split(this.SEPARATOR);
@@ -58,9 +53,44 @@ var CronParser = (function () {
             year: exprArray[6]
         };
     };
-    CronParser.prototype.getSecondsString = function (seconds) { };
-    CronParser.prototype.getMinutesString = function (minutes) { };
-    CronParser.prototype.getHoursString = function (hours) { };
+    CronParser.prototype.getTime = function (seconds, minutes, hours) {
+        if (seconds === '*' && minutes === '*' && hours === '*') {
+            return 'every second';
+        }
+    };
+    CronParser.prototype.getSecondsString = function (seconds) {
+        if (seconds === '*') {
+            return 'every second';
+        }
+        else if (seconds === '0') {
+            return '00';
+        }
+        else {
+            return null;
+        }
+    };
+    CronParser.prototype.getMinutesString = function (minutes) {
+        if (minutes === '*') {
+            return 'every minute';
+        }
+        else if (minutes === '0') {
+            return '00';
+        }
+        else {
+            return null;
+        }
+    };
+    CronParser.prototype.getHoursString = function (hours) {
+        if (hours === '*') {
+            return 'every hour';
+        }
+        else if (hours === '0') {
+            return '00';
+        }
+        else {
+            return null;
+        }
+    };
     CronParser.prototype.getYearString = function (years) {
         var isRange = years.indexOf(this.DASH) > 0, isMulti = years.indexOf(this.COMA) > 0;
         if (years === this.WILDCARD || !years) {
@@ -98,6 +128,23 @@ var CronParser = (function () {
     CronParser.prototype.getMonthName = function (month) {
         return this.getType('months', month);
     };
+    CronParser.prototype.getDayString = function (days) {
+        var isRange = days.indexOf(this.DASH) > 0, isMulti = days.indexOf(this.COMA) > 0;
+        if (days === this.WILDCARD) {
+            return 'every day';
+        }
+        else if (isRange) {
+            var dayArray = days.split(this.DASH);
+            return "every day from " + this.getDayName(dayArray[0]) + " to " + this.getDayName(dayArray[1]);
+        }
+        else if (isMulti) {
+            var dayArray = days.split(this.COMA), last = dayArray.pop();
+            return "every " + dayArray.map(this.getDayName.bind(this)).join(', ') + " and " + this.getDayName(last);
+        }
+        else {
+            return "every " + this.getDayName(days);
+        }
+    };
     CronParser.prototype.getDayName = function (day) {
         return this.getType('days', day);
     };
@@ -106,7 +153,7 @@ var CronParser = (function () {
         switch (type) {
             case 'days':
                 return isNaN(parsed) ? this.days.getKey(value) :
-                    typeof parsed === 'number' ? this.daysArray[parsed] :
+                    typeof parsed === 'number' ? this.daysArray[parsed - 1] :
                         null;
             case 'months':
             default:

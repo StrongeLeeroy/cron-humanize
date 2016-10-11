@@ -53,15 +53,7 @@ export class CronParser {
 
     public humanize(expression: string): string {
         let detail = this.dissect(expression);
-
-        let yearString = `during ${this.getYearString(detail.year)}.`;
-        return '';
-    }
-
-    public getTime(seconds: string, minutes: string, hours: string): string {
-        let timeString = '';
-
-        return timeString;
+        return this.getMonthString(detail.month) + this.getYearString(detail.year);
     }
 
     public dissect(expression: string): CronDissection {
@@ -78,9 +70,41 @@ export class CronParser {
     }
 
 
-    public getSecondsString(seconds: string) {}
-    public getMinutesString(minutes: string) {}
-    public getHoursString(hours: string) {}
+    public getTime(seconds: string, minutes: string, hours: string): string {
+        if (seconds === '*' && minutes === '*' && hours === '*') {
+            return 'every second';
+        }
+    }
+
+    public getSecondsString(seconds: string): string {
+        if (seconds === '*') {
+            return 'every second';
+        } else if (seconds === '0') {
+            return '00';
+        } else {
+            return null;
+        }
+    }
+
+    public getMinutesString(minutes: string) {
+        if (minutes === '*') {
+            return 'every minute';
+        } else if (minutes === '0') {
+            return '00';
+        } else {
+            return null;
+        }
+    }
+
+    public getHoursString(hours: string) {
+        if (hours === '*') {
+            return 'every hour';
+        } else if (hours === '0') {
+            return '00';
+        } else {
+            return null;
+        }
+    }
 
     public getYearString(years: string) {
         let isRange = years.indexOf(this.DASH) > 0,
@@ -101,7 +125,7 @@ export class CronParser {
         }
     }
 
-    public getMonthString(months: string) {
+    public getMonthString(months: string): string {
         let isRange = months.indexOf(this.DASH) > 0,
             isMulti = months.indexOf(this.COMA) > 0;
 
@@ -123,6 +147,24 @@ export class CronParser {
         return this.getType('months', month);
     }
 
+    public getDayString(days: string): string {
+        let isRange = days.indexOf(this.DASH) > 0,
+            isMulti = days.indexOf(this.COMA) > 0;
+
+        if (days === this.WILDCARD) {
+            return 'every day';
+        } else if (isRange) {
+            let dayArray = days.split(this.DASH);
+            return `every day from ${this.getDayName(dayArray[0])} to ${this.getDayName(dayArray[1])}`;
+        } else if (isMulti) {
+            let dayArray = days.split(this.COMA),
+                last = dayArray.pop();
+            return `every ${dayArray.map(this.getDayName.bind(this)).join(', ')} and ${this.getDayName(last)}`;
+        } else {
+            return `every ${this.getDayName(days)}`;
+        }
+    }
+
     public getDayName(day: string): string {
         return this.getType('days', day);
     }
@@ -133,7 +175,7 @@ export class CronParser {
         switch (type) {
             case 'days':
                 return isNaN(parsed) ? this.days.getKey(value) :
-                    typeof parsed === 'number' ? this.daysArray[parsed] :
+                    typeof parsed === 'number' ? this.daysArray[parsed - 1] :
                     null;
             case 'months':
             default:

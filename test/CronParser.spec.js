@@ -23,13 +23,43 @@ describe('getDayName', function() {
     });
 
     it ('should return the day name when a day index is supplied', function() {
-
+        days.forEach(function(day) {
+            expect(parser.getDayName(day.index)).to.be.a('string');
+            expect(parser.getDayName(day.index)).to.equal(day.fullname);
+        });
     });
 });
 
 
-describe('getDayOfWeekString', function() {
-    it ('should return the ')
+describe('getDayString', function() {
+    it('should return a valid string for a the wildcard (*) character', function () {
+        expect(parser.getDayString('*')).to.be.a('string');
+        expect(parser.getDayString('*')).to.equal('every day');
+    });
+
+    it('should return a valid string when a single day is supplied', function () {
+        expect(parser.getDayString('WED')).to.be.a('string');
+        expect(parser.getDayString('WED')).to.equal('every Wednesday');
+
+        expect(parser.getDayString('3')).to.be.a('string');
+        expect(parser.getDayString('3')).to.equal('every Wednesday');
+    });
+
+    it('should return a valid string when multiple days are supplied', function () {
+        expect(parser.getDayString('MON,TUE,FRI')).to.be.a('string');
+        expect(parser.getDayString('MON,TUE,FRI')).to.equal('every Monday, Tuesday and Friday');
+
+        expect(parser.getDayString('1,2,5')).to.be.a('string');
+        expect(parser.getDayString('1,2,5')).to.equal('every Monday, Tuesday and Friday');
+    });
+
+    it('should return a valid string when a day range is supplied', function () {
+        expect(parser.getDayString('TUE-SAT')).to.be.a('string');
+        expect(parser.getDayString('TUE-SAT')).to.equal('every day from Tuesday to Saturday');
+
+        expect(parser.getDayString('2-6')).to.be.a('string');
+        expect(parser.getDayString('2-6')).to.equal('every day from Tuesday to Saturday');
+    });
 });
 
 describe('getMonthName', function() {
