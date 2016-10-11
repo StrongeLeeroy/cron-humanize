@@ -34,7 +34,22 @@ export class CronParser {
         }
     };
 
-    private monthArray = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    private monthsArray = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+    private days = {
+        MON: 'Monday',
+        TUE: 'Tuesday',
+        WED: 'Wednesday',
+        THU: 'Thursday',
+        FRI: 'Friday',
+        SAT: 'Saturday',
+        SUN: 'Sunday',
+        getKey: function(key: string) {
+            return this[key];
+        }
+    };
+
+    private daysArray = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
     public humanize(expression: string): string {
         let detail = this.dissect(expression);
@@ -62,11 +77,18 @@ export class CronParser {
         }
     }
 
+
+    public getSecondsString(seconds: string) {}
+    public getMinutesString(minutes: string) {}
+    public getHoursString(hours: string) {}
+
     public getYearString(years: string) {
         let isRange = years.indexOf(this.DASH) > 0,
             isMulti = years.indexOf(this.COMA) > 0;
 
-        if (isRange) {
+        if (years === this.WILDCARD || !years) {
+            return 'every year';
+        } else if (isRange) {
             let yearArray = years.split(this.DASH);
             return `between ${yearArray[0]} and ${yearArray[1]}`;
         } else if (isMulti) {
@@ -84,7 +106,7 @@ export class CronParser {
             isMulti = months.indexOf(this.COMA) > 0;
 
         if (months === this.WILDCARD) {
-            return 'every month'
+            return 'every month';
         } else if (isRange) {
             let monthArray = months.split(this.DASH);
             return `in the months of ${this.getMonthName(monthArray[0])} through ${this.getMonthName(monthArray[1])}`;
@@ -98,11 +120,26 @@ export class CronParser {
     }
 
     public getMonthName(month: string): string {
-        let parsed = parseInt(month);
-        if (isNaN(parsed)) {
-            return this.months.getKey(month);
-        } else if (typeof parsed === 'number') {
-            return this.monthArray[parsed];
+        return this.getType('months', month);
+    }
+
+    public getDayName(day: string): string {
+        return this.getType('days', day);
+    }
+
+    public getType(type: string, value: string): string {
+        let parsed = parseInt(value);
+
+        switch (type) {
+            case 'days':
+                return isNaN(parsed) ? this.days.getKey(value) :
+                    typeof parsed === 'number' ? this.daysArray[parsed] :
+                    null;
+            case 'months':
+            default:
+                return isNaN(parsed) ? this.months.getKey(value) :
+                    typeof parsed === 'number' ? this.monthsArray[parsed] :
+                    null;
         }
     }
 }

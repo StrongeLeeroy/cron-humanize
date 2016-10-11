@@ -22,7 +22,20 @@ var CronParser = (function () {
                 return this[key];
             }
         };
-        this.monthArray = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        this.monthsArray = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        this.days = {
+            MON: 'Monday',
+            TUE: 'Tuesday',
+            WED: 'Wednesday',
+            THU: 'Thursday',
+            FRI: 'Friday',
+            SAT: 'Saturday',
+            SUN: 'Sunday',
+            getKey: function (key) {
+                return this[key];
+            }
+        };
+        this.daysArray = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     }
     CronParser.prototype.humanize = function (expression) {
         var detail = this.dissect(expression);
@@ -45,9 +58,15 @@ var CronParser = (function () {
             year: exprArray[6]
         };
     };
+    CronParser.prototype.getSecondsString = function (seconds) { };
+    CronParser.prototype.getMinutesString = function (minutes) { };
+    CronParser.prototype.getHoursString = function (hours) { };
     CronParser.prototype.getYearString = function (years) {
         var isRange = years.indexOf(this.DASH) > 0, isMulti = years.indexOf(this.COMA) > 0;
-        if (isRange) {
+        if (years === this.WILDCARD || !years) {
+            return 'every year';
+        }
+        else if (isRange) {
             var yearArray = years.split(this.DASH);
             return "between " + yearArray[0] + " and " + yearArray[1];
         }
@@ -77,12 +96,23 @@ var CronParser = (function () {
         }
     };
     CronParser.prototype.getMonthName = function (month) {
-        var parsed = parseInt(month);
-        if (isNaN(parsed)) {
-            return this.months.getKey(month);
-        }
-        else if (typeof parsed === 'number') {
-            return this.monthArray[parsed];
+        return this.getType('months', month);
+    };
+    CronParser.prototype.getDayName = function (day) {
+        return this.getType('days', day);
+    };
+    CronParser.prototype.getType = function (type, value) {
+        var parsed = parseInt(value);
+        switch (type) {
+            case 'days':
+                return isNaN(parsed) ? this.days.getKey(value) :
+                    typeof parsed === 'number' ? this.daysArray[parsed] :
+                        null;
+            case 'months':
+            default:
+                return isNaN(parsed) ? this.months.getKey(value) :
+                    typeof parsed === 'number' ? this.monthsArray[parsed] :
+                        null;
         }
     };
     return CronParser;

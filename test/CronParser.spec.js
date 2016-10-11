@@ -3,6 +3,35 @@ var expect = require('chai').expect;
 var CronParser = require('../dist/cronParser').CronParser;
 let parser = new CronParser();
 
+describe('getDayName', function() {
+
+    let days = [
+        { shortname: 'MON', fullname: 'Monday',     index: 1 },
+        { shortname: 'TUE', fullname: 'Tuesday',    index: 2 },
+        { shortname: 'WED', fullname: 'Wednesday',  index: 3 },
+        { shortname: 'THU', fullname: 'Thursday',   index: 4 },
+        { shortname: 'FRI', fullname: 'Friday',     index: 5 },
+        { shortname: 'SAT', fullname: 'Saturday',   index: 6 },
+        { shortname: 'SUN', fullname: 'Sunday',     index: 7 }
+    ];
+
+    it ('should return the day name when a day string is supplied', function() {
+        days.forEach(function(day) {
+            expect(parser.getDayName(day.shortname)).to.be.a('string');
+            expect(parser.getDayName(day.shortname)).to.equal(day.fullname);
+        });
+    });
+
+    it ('should return the day name when a day index is supplied', function() {
+
+    });
+});
+
+
+describe('getDayOfWeekString', function() {
+    it ('should return the ')
+});
+
 describe('getMonthName', function() {
 
     let months = [
