@@ -5,6 +5,7 @@ var CronParser = (function () {
         this.COMA = ',';
         this.DASH = '-';
         this.WILDCARD = '*';
+        this.SLASH = '/';
         this.months = {
             JAN: 'January',
             FEB: 'February',
@@ -92,7 +93,7 @@ var CronParser = (function () {
         }
     };
     CronParser.prototype.getYearString = function (years) {
-        var isRange = years.indexOf(this.DASH) > 0, isMulti = years.indexOf(this.COMA) > 0;
+        var isRange = years.indexOf(this.DASH) > 0, isMulti = years.indexOf(this.COMA) > 0, isIncrement = years.indexOf(this.SLASH) > 0;
         if (years === this.WILDCARD || !years) {
             return 'every year';
         }
@@ -104,12 +105,16 @@ var CronParser = (function () {
             var yearArray = years.split(this.COMA), last = yearArray.pop();
             return "during " + yearArray.join(', ') + " and " + last;
         }
+        else if (isIncrement) {
+            var increment = years.split(this.SLASH), isOne = parseInt(increment[1]) === 1;
+            return "every " + (isOne ? '' : increment[1] + ' ') + "year" + (isOne ? '' : 's') + " starting on " + increment[0];
+        }
         else {
             return "during " + years;
         }
     };
     CronParser.prototype.getMonthString = function (months) {
-        var isRange = months.indexOf(this.DASH) > 0, isMulti = months.indexOf(this.COMA) > 0;
+        var isRange = months.indexOf(this.DASH) > 0, isMulti = months.indexOf(this.COMA) > 0, isIncrement = months.indexOf(this.SLASH) > 0;
         if (months === this.WILDCARD) {
             return 'every month';
         }
@@ -121,6 +126,10 @@ var CronParser = (function () {
             var monthArray = months.split(this.COMA), last = monthArray.pop();
             return "in the months of " + monthArray.map(this.getMonthName.bind(this)).join(', ') + " and " + this.getMonthName(last);
         }
+        else if (isIncrement) {
+            var increment = months.split(this.SLASH), isOne = parseInt(increment[1]) === 1;
+            return "every " + (isOne ? '' : increment[1] + ' ') + "month" + (isOne ? '' : 's') + " starting on " + this.getMonthName(increment[0]);
+        }
         else {
             return "in the month of " + this.getMonthName(months);
         }
@@ -129,7 +138,7 @@ var CronParser = (function () {
         return this.getType('months', month);
     };
     CronParser.prototype.getDayString = function (days) {
-        var isRange = days.indexOf(this.DASH) > 0, isMulti = days.indexOf(this.COMA) > 0;
+        var isRange = days.indexOf(this.DASH) > 0, isMulti = days.indexOf(this.COMA) > 0, isIncrement = days.indexOf(this.SLASH) > 0;
         if (days === this.WILDCARD) {
             return 'every day';
         }
@@ -140,6 +149,10 @@ var CronParser = (function () {
         else if (isMulti) {
             var dayArray = days.split(this.COMA), last = dayArray.pop();
             return "every " + dayArray.map(this.getDayName.bind(this)).join(', ') + " and " + this.getDayName(last);
+        }
+        else if (isIncrement) {
+            var increment = days.split(this.SLASH), isOne = parseInt(increment[1]) === 1;
+            return "every " + (isOne ? '' : increment[1] + ' ') + "day" + (isOne ? '' : 's') + " starting on " + this.getDayName(increment[0]);
         }
         else {
             return "every " + this.getDayName(days);

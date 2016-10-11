@@ -15,6 +15,7 @@ export class CronParser {
     private COMA: string = ',';
     private DASH: string = '-';
     private WILDCARD: string = '*';
+    private SLASH: string = '/';
 
     private months = {
         JAN: 'January',
@@ -108,7 +109,8 @@ export class CronParser {
 
     public getYearString(years: string) {
         let isRange = years.indexOf(this.DASH) > 0,
-            isMulti = years.indexOf(this.COMA) > 0;
+            isMulti = years.indexOf(this.COMA) > 0,
+            isIncrement = years.indexOf(this.SLASH) > 0;
 
         if (years === this.WILDCARD || !years) {
             return 'every year';
@@ -118,8 +120,11 @@ export class CronParser {
         } else if (isMulti) {
             let yearArray = years.split(this.COMA),
                 last = yearArray.pop();
-
             return `during ${yearArray.join(', ')} and ${last}`;
+        } else if (isIncrement) {
+            let increment = years.split(this.SLASH),
+                isOne = parseInt(increment[1]) === 1;
+            return `every ${isOne ? '' : increment[1] + ' '}year${isOne ? '' : 's'} starting on ${increment[0]}`
         } else {
             return `during ${years}`;
         }
@@ -127,7 +132,8 @@ export class CronParser {
 
     public getMonthString(months: string): string {
         let isRange = months.indexOf(this.DASH) > 0,
-            isMulti = months.indexOf(this.COMA) > 0;
+            isMulti = months.indexOf(this.COMA) > 0,
+            isIncrement = months.indexOf(this.SLASH) > 0;
 
         if (months === this.WILDCARD) {
             return 'every month';
@@ -138,6 +144,10 @@ export class CronParser {
             let monthArray = months.split(this.COMA),
                 last = monthArray.pop();
             return `in the months of ${monthArray.map(this.getMonthName.bind(this)).join(', ')} and ${this.getMonthName(last)}`;
+        } else if (isIncrement) {
+            let increment = months.split(this.SLASH),
+                isOne = parseInt(increment[1]) === 1;
+            return `every ${isOne ? '' : increment[1] + ' '}month${isOne ? '' : 's'} starting on ${this.getMonthName(increment[0])}`
         } else {
             return `in the month of ${this.getMonthName(months)}`;
         }
@@ -149,7 +159,8 @@ export class CronParser {
 
     public getDayString(days: string): string {
         let isRange = days.indexOf(this.DASH) > 0,
-            isMulti = days.indexOf(this.COMA) > 0;
+            isMulti = days.indexOf(this.COMA) > 0,
+            isIncrement = days.indexOf(this.SLASH) > 0;
 
         if (days === this.WILDCARD) {
             return 'every day';
@@ -160,6 +171,10 @@ export class CronParser {
             let dayArray = days.split(this.COMA),
                 last = dayArray.pop();
             return `every ${dayArray.map(this.getDayName.bind(this)).join(', ')} and ${this.getDayName(last)}`;
+        } else if (isIncrement) {
+            let increment = days.split(this.SLASH),
+                isOne = parseInt(increment[1]) === 1;
+            return `every ${isOne ? '' : increment[1] + ' '}day${isOne ? '' : 's'} starting on ${this.getDayName(increment[0])}`
         } else {
             return `every ${this.getDayName(days)}`;
         }

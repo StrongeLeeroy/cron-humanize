@@ -3,6 +3,37 @@ var expect = require('chai').expect;
 var CronParser = require('../dist/cronParser').CronParser;
 let parser = new CronParser();
 
+
+describe('getTimeString', function() {
+    it('should return a valid string when a fixed time is given', function() {
+        expect(parser.getTimeString('10', '30', '14')).to.be.a('string');
+        expect(parser.getTimeString('10', '30', '14')).to.equal('14:30:10');
+
+        expect(parser.getTimeString('59', '5', '23')).to.be.a('string');
+        expect(parser.getTimeString('59', '5', '23')).to.equal('23:05:59');
+
+        expect(parser.getTimeString('11', '0', '2')).to.be.a('string');
+        expect(parser.getTimeString('11', '0', '2')).to.equal('02:00:11');
+    });
+
+    it('should return a valid string when seconds are set to 0', function() {
+        expect(parser.getTimeString('0', '30', '14')).to.be.a('string');
+        expect(parser.getTimeString('0', '30', '14')).to.equal('14:30');
+
+        expect(parser.getTimeString('0', '5', '23')).to.be.a('string');
+        expect(parser.getTimeString('0', '5', '23')).to.equal('23:00');
+
+        expect(parser.getTimeString('0', '11', '2')).to.be.a('string');
+        expect(parser.getTimeString('0', '11', '2')).to.equal('2:11');
+    });
+
+    it('should throw a an error if any of the parameters is invalid', function() {
+        expect(parser.getTimeString('10', '10', '25')).to.throw(new Error('Invalid date parameters.'));
+        expect(parser.getTimeString()).to.throw(new Error('Invalid date parameters.'));
+        expect(parser.getTimeString()).to.throw(new Error('Invalid date parameters.'));
+    });
+});
+
 describe('getDayName', function() {
 
     let days = [
@@ -59,6 +90,17 @@ describe('getDayString', function() {
 
         expect(parser.getDayString('2-6')).to.be.a('string');
         expect(parser.getDayString('2-6')).to.equal('every day from Tuesday to Saturday');
+    });
+
+    it('should return a valid string when an increment is supplied', function() {
+        expect(parser.getDayString('1/4')).to.be.a('string');
+        expect(parser.getDayString('1/4')).to.equal('every 4 days starting on Monday');
+
+        expect(parser.getDayString('3/1')).to.be.a('string');
+        expect(parser.getDayString('3/1')).to.equal('every day starting on Wednesday');
+
+        expect(parser.getDayString('5/5')).to.be.a('string');
+        expect(parser.getDayString('5/5')).to.equal('every 5 days starting on Friday');
     });
 });
 
@@ -123,6 +165,17 @@ describe('getMonthString', function() {
         expect(parser.getMonthString('2-7')).to.be.a('string');
         expect(parser.getMonthString('2-7')).to.equal('in the months of March through August');
     });
+
+    it('should return a valid string when an increment is supplied', function() {
+        expect(parser.getMonthString('5/2')).to.be.a('string');
+        expect(parser.getMonthString('5/2')).to.equal('every 2 months starting on June');
+
+        expect(parser.getMonthString('0/1')).to.be.a('string');
+        expect(parser.getMonthString('0/1')).to.equal('every month starting on January');
+
+        expect(parser.getMonthString('9/5')).to.be.a('string');
+        expect(parser.getMonthString('9/5')).to.equal('every 5 months starting on October');
+    });
 });
 
 
@@ -140,5 +193,16 @@ describe('getYearString', function() {
     it('should return a valid string for multiple years', function() {
         expect(parser.getYearString('2005,2006,2009,2010')).to.be.a('string');
         expect(parser.getYearString('2005,2006,2009,2010')).to.equal('during 2005, 2006, 2009 and 2010');
+    });
+
+    it('should return a valid string when an increment is supplied', function() {
+        expect(parser.getYearString('2020/2')).to.be.a('string');
+        expect(parser.getYearString('2020/2')).to.equal('every 2 years starting on 2020');
+
+        expect(parser.getYearString('2016/1')).to.be.a('string');
+        expect(parser.getYearString('2016/1')).to.equal('every year starting on 2016');
+
+        expect(parser.getYearString('2017/5')).to.be.a('string');
+        expect(parser.getYearString('2017/5')).to.equal('every 5 years starting on 2017');
     });
 });
