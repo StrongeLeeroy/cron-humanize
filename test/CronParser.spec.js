@@ -29,8 +29,8 @@ describe('getTimeString', function() {
 
     it('should throw a an error if any of the parameters is invalid', function() {
         expect(parser.getTimeString('10', '10', '25')).to.throw(new Error('Invalid date parameters.'));
-        expect(parser.getTimeString()).to.throw(new Error('Invalid date parameters.'));
-        expect(parser.getTimeString()).to.throw(new Error('Invalid date parameters.'));
+        expect(parser.getTimeString('10', '67', '22')).to.throw(new Error('Invalid date parameters.'));
+        expect(parser.getTimeString('89', '10', '22')).to.throw(new Error('Invalid date parameters.'));
     });
 });
 

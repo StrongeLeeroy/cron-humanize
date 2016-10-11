@@ -71,7 +71,7 @@ export class CronParser {
     }
 
 
-    public getTime(seconds: string, minutes: string, hours: string): string {
+    public getTimeString(seconds: string, minutes: string, hours: string): string {
         if (seconds === '*' && minutes === '*' && hours === '*') {
             return 'every second';
         }
