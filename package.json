@@ -10,7 +10,7 @@
   },
   "scripts": {
     "test": "mocha test",
-    "build": "tsc"
+    "build": "tsc --target es5"
   },
   "keywords": [
     "cron",
