@@ -1,4 +1,4 @@
-// Format: * * * * * * * => SECONDS - MINUTES - HOURS - DAY OF MONTH - MONTH - DAY OF WEEK - YEAR
+/// <reference path="../typings/index.d.ts" />
 
 interface CronDissection {
     seconds: string;
@@ -191,12 +191,12 @@ export class CronParser {
             case 'days':
                 return isNaN(parsed) ? this.days.getKey(value) :
                     typeof parsed === 'number' ? this.daysArray[parsed - 1] :
-                    null;
+                        null;
             case 'months':
             default:
                 return isNaN(parsed) ? this.months.getKey(value) :
                     typeof parsed === 'number' ? this.monthsArray[parsed] :
-                    null;
+                        null;
         }
     }
 }

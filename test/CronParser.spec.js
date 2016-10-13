@@ -1,6 +1,6 @@
 "use strict";
 var expect = require('chai').expect;
-var CronParser = require('../dist/cronParser').CronParser;
+var CronParser = require('../dist/cron-parser').CronParser;
 let parser = new CronParser();
 
 
