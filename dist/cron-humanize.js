@@ -301,4 +301,4 @@ var CronParser = (function () {
     return CronParser;
 }());
 exports.CronParser = CronParser;
-//# sourceMappingURL=cron-parser.js.map
+//# sourceMappingURL=cron-humanize.js.map

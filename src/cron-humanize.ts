@@ -364,6 +364,4 @@ export class CronParser {
     public getDayOfWeekName(day: number): string {
         return CONSTANTS.FULL_DAYS[day - 1];
     }
-
-
 }
