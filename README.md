@@ -5,6 +5,10 @@
 
 Transforms cron expressions into human speech.
 
-Example (NYI):
+**NOTE**
+Currently under development. Not feature complete.
 
-    CronParser.humanize('0 0 12 * * ?'); // Fire at 12:00PM every day
+
+Example:
+
+    CronParser.humanize('* * * * * * *'); // Fire every second, every day, every month, every year.
