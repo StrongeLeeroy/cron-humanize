@@ -112,12 +112,18 @@ var CronExpression = (function () {
         this.dayOfWeek = new UnitDefinition(this.dissection.dayOfWeek, exports.CONSTANTS.SHORT_DAYS, 1);
         this.year = new UnitDefinition(this.dissection.year);
     }
+    CronExpression.prototype.getKey = function (key) {
+        return this[key];
+    };
     CronExpression.prototype.setDissection = function (expression) {
         if (!expression) {
-            throw new Error('A valid cron expression or generated expression must be provided');
+            throw new Error('A valid cron expression or generated expression must be provided.');
         }
         else if (typeof expression === 'string') {
             var exprArray = expression.split(exports.CONSTANTS.SEPARATOR);
+            if (exprArray.length > 7 || exprArray.length < 6) {
+                throw new Error("Invalid cron expression: " + expression + ". Wrong length: " + exprArray.length + ".");
+            }
             this.dissection = {
                 seconds: exprArray[0],
                 minutes: exprArray[1],
@@ -147,8 +153,36 @@ var CronParser = (function () {
     function CronParser() {
     }
     CronParser.prototype.humanize = function (expression) {
-        var cron = new CronExpression(expression), baseString = 'Fire';
-        return baseString + " " + this.getTimeString(cron.seconds, cron.minutes, cron.hours) + ", " + this.getDayOfWeekString(cron.dayOfWeek) + ", " + this.getMonthString(cron.month) + ", " + this.getYearString(cron.year) + ".";
+        var cron = new CronExpression(expression), order = ['month', 'dayOfWeek', 'year'];
+        var result = "Fire " + this.getTimeString(cron.seconds, cron.minutes, cron.hours), dayOfMonth = this.getDayOfMonthString(cron.dayOfMonth);
+        if (dayOfMonth.length > 0) {
+            result += ", " + dayOfMonth;
+        }
+        if (cron.dayOfMonth.type != exports.CONSTANTS.TYPE_WILDCARD && cron.dayOfMonth.type != exports.CONSTANTS.TYPE_UNSPECIFIED &&
+            (cron.month.type === exports.CONSTANTS.TYPE_WILDCARD || cron.month.type === exports.CONSTANTS.TYPE_UNSPECIFIED)) {
+            result += " of every month";
+        }
+        for (var _i = 0, order_1 = order; _i < order_1.length; _i++) {
+            var key = order_1[_i];
+            if (cron[key].type != exports.CONSTANTS.TYPE_WILDCARD && cron[key].type != exports.CONSTANTS.TYPE_UNSPECIFIED) {
+                result += ", " + this.getString(key, cron[key]);
+            }
+        }
+        return result + '.';
+    };
+    CronParser.prototype.getString = function (type, value) {
+        switch (type) {
+            case 'dayOfMonth':
+                return this.getDayOfMonthString(value);
+            case 'month':
+                return this.getMonthString(value);
+            case 'dayOfWeek':
+                return this.getDayOfWeekString(value);
+            case 'year':
+                return this.getYearString(value);
+            default:
+                throw new Error('Something went wrong.');
+        }
     };
     CronParser.prototype.getTimeString = function (seconds, minutes, hours) {
         if (seconds.type === exports.CONSTANTS.TYPE_SINGLE && minutes.type === exports.CONSTANTS.TYPE_SINGLE && hours.type === exports.CONSTANTS.TYPE_SINGLE) {
@@ -156,6 +190,9 @@ var CronParser = (function () {
         }
         else if (seconds.type === exports.CONSTANTS.TYPE_WILDCARD && minutes.type === exports.CONSTANTS.TYPE_WILDCARD && hours.type === exports.CONSTANTS.TYPE_WILDCARD) {
             return 'every second';
+        }
+        else if (seconds.type === exports.CONSTANTS.TYPE_INTERVAL && minutes.type === exports.CONSTANTS.TYPE_WILDCARD) {
+            return this.getSecondsString(seconds) + ", " + this.getHoursString(hours);
         }
         else {
             return this.getSecondsString(seconds) + ", " + this.getMinutesString(minutes) + ", " + this.getHoursString(hours);
@@ -165,7 +202,7 @@ var CronParser = (function () {
         switch (seconds.type) {
             case exports.CONSTANTS.TYPE_WILDCARD:
                 return 'every second';
-            case exports.CONSTANTS.UNSPECIFIED:
+            case exports.CONSTANTS.TYPE_UNSPECIFIED:
                 return '';
             case exports.CONSTANTS.TYPE_RANGE:
                 return "every second from " + seconds.range.start + " through " + seconds.range.end;
@@ -183,7 +220,7 @@ var CronParser = (function () {
         switch (minutes.type) {
             case exports.CONSTANTS.TYPE_WILDCARD:
                 return 'every minute';
-            case exports.CONSTANTS.UNSPECIFIED:
+            case exports.CONSTANTS.TYPE_UNSPECIFIED:
                 return '';
             case exports.CONSTANTS.TYPE_RANGE:
                 return "every minute from " + minutes.range.start + " through " + minutes.range.end;
@@ -200,7 +237,7 @@ var CronParser = (function () {
     CronParser.prototype.getHoursString = function (hours) {
         switch (hours.type) {
             case exports.CONSTANTS.TYPE_WILDCARD:
-            case exports.CONSTANTS.UNSPECIFIED:
+            case exports.CONSTANTS.TYPE_UNSPECIFIED:
                 return 'every hour';
             case exports.CONSTANTS.TYPE_RANGE:
                 return "during every hour from " + this.pad(hours.range.start) + " through " + this.pad(hours.range.end);
@@ -215,7 +252,8 @@ var CronParser = (function () {
         }
     };
     CronParser.prototype.getOrdinal = function (value) {
-        switch (value) {
+        var numString = value.toString();
+        switch (parseInt(numString[numString.length - 1])) {
             case 1:
                 return 'st';
             case 2:
@@ -238,11 +276,29 @@ var CronParser = (function () {
             "0" + value :
             "" + value;
     };
+    CronParser.prototype.getDayOfMonthString = function (dayOfMonth) {
+        switch (dayOfMonth.type) {
+            case exports.CONSTANTS.TYPE_WILDCARD:
+                return 'every day';
+            case exports.CONSTANTS.TYPE_UNSPECIFIED:
+                return 'every day';
+            case exports.CONSTANTS.TYPE_RANGE:
+                return "between the " + (dayOfMonth.range.start + this.getOrdinal(dayOfMonth.range.start)) + " and " + (dayOfMonth.range.end + this.getOrdinal(dayOfMonth.range.end));
+            case exports.CONSTANTS.TYPE_MULTI:
+                return "during the " + dayOfMonth.multi.values.map(this.getOrdinal).join(', ') + " and " + dayOfMonth.multi.last;
+            case exports.CONSTANTS.TYPE_INTERVAL:
+                var isOne = dayOfMonth.interval.step === 1;
+                return "every " + (isOne ? '' : dayOfMonth.interval.step + ' ') + "day" + (isOne ? '' : 's') + " starting on the " + (dayOfMonth.interval.start + this.getOrdinal(dayOfMonth.interval.start));
+            case exports.CONSTANTS.TYPE_SINGLE:
+            default:
+                return "on the " + (dayOfMonth.single + this.getOrdinal(dayOfMonth.single));
+        }
+    };
     CronParser.prototype.getYearString = function (years) {
         switch (years.type) {
             case exports.CONSTANTS.TYPE_WILDCARD:
                 return 'every year';
-            case exports.CONSTANTS.UNSPECIFIED:
+            case exports.CONSTANTS.TYPE_UNSPECIFIED:
                 return '';
             case exports.CONSTANTS.TYPE_RANGE:
                 return "between " + years.range.start + " and " + years.range.end;
@@ -260,7 +316,7 @@ var CronParser = (function () {
         switch (months.type) {
             case exports.CONSTANTS.TYPE_WILDCARD:
                 return 'every month';
-            case exports.CONSTANTS.UNSPECIFIED:
+            case exports.CONSTANTS.TYPE_UNSPECIFIED:
                 return '';
             case exports.CONSTANTS.TYPE_RANGE:
                 return "in the months of " + this.getMonthName(months.range.start) + " through " + this.getMonthName(months.range.end);
@@ -281,18 +337,18 @@ var CronParser = (function () {
         switch (days.type) {
             case exports.CONSTANTS.TYPE_WILDCARD:
                 return 'every day';
-            case exports.CONSTANTS.UNSPECIFIED:
+            case exports.CONSTANTS.TYPE_UNSPECIFIED:
                 return '';
             case exports.CONSTANTS.TYPE_RANGE:
-                return "every day from " + this.getDayOfWeekName(days.range.start) + " through " + this.getDayOfWeekName(days.range.end);
+                return "only from " + this.getDayOfWeekName(days.range.start) + " through " + this.getDayOfWeekName(days.range.end);
             case exports.CONSTANTS.TYPE_MULTI:
-                return "every " + days.multi.values.map(this.getDayOfWeekName).join(', ') + " and " + this.getDayOfWeekName(days.multi.last);
+                return "only on " + days.multi.values.map(this.getDayOfWeekName).join(', ') + " and " + this.getDayOfWeekName(days.multi.last);
             case exports.CONSTANTS.TYPE_INTERVAL:
                 var isOne = days.interval.step === 1;
                 return "every " + (isOne ? '' : days.interval.step + ' ') + "day" + (isOne ? '' : 's') + " starting on " + this.getDayOfWeekName(days.interval.start);
             case exports.CONSTANTS.TYPE_SINGLE:
             default:
-                return "every " + this.getDayOfWeekName(days.single);
+                return "only on " + this.getDayOfWeekName(days.single) + "s";
         }
     };
     CronParser.prototype.getDayOfWeekName = function (day) {
@@ -300,5 +356,5 @@ var CronParser = (function () {
     };
     return CronParser;
 }());
-exports.CronParser = CronParser;
+exports.CronHumanize = new CronParser();
 //# sourceMappingURL=cron-humanize.js.map

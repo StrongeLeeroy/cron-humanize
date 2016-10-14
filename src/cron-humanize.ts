@@ -155,6 +155,8 @@ export class CronExpression {
     public dayOfWeek: UnitDefinition;
     public year: UnitDefinition;
 
+    [key: string]: any;
+
     constructor(private expressionString: string) {
         this.setDissection(expressionString);
 
@@ -168,11 +170,20 @@ export class CronExpression {
         this.year = new UnitDefinition(this.dissection.year);
     }
 
+    public getKey(key: string): any {
+        return this[key];
+    }
+
     public setDissection(expression: string | CronDissection): void {
         if (!expression) {
-            throw new Error('A valid cron expression or generated expression must be provided');
+            throw new Error('A valid cron expression or generated expression must be provided.');
         } else if (typeof expression === 'string') {
             let exprArray = expression.split(CONSTANTS.SEPARATOR);
+
+            if (exprArray.length > 7 || exprArray.length < 6) {
+                throw new Error(`Invalid cron expression: ${expression}. Wrong length: ${exprArray.length}.`);
+            }
+
             this.dissection = {
                 seconds: exprArray[0],
                 minutes: exprArray[1],
@@ -196,13 +207,46 @@ export class CronExpression {
     }
 }
 
-export class CronParser {
+class CronParser {
 
     public humanize(expression: string): string {
         let cron: CronExpression = new CronExpression(expression),
-            baseString = 'Fire';
+            order: string[] = ['month', 'dayOfWeek', 'year'];
 
-        return `${baseString} ${this.getTimeString(cron.seconds, cron.minutes, cron.hours)}, ${this.getDayOfWeekString(cron.dayOfWeek)}, ${this.getMonthString(cron.month)}, ${this.getYearString(cron.year)}.`;
+        let result = `Fire ${this.getTimeString(cron.seconds, cron.minutes, cron.hours)}`,
+            dayOfMonth = this.getDayOfMonthString(cron.dayOfMonth);
+
+        if (dayOfMonth.length > 0) {
+            result += `, ${dayOfMonth}`;
+        }
+
+        if (cron.dayOfMonth.type != CONSTANTS.TYPE_WILDCARD && cron.dayOfMonth.type != CONSTANTS.TYPE_UNSPECIFIED &&
+            (cron.month.type === CONSTANTS.TYPE_WILDCARD || cron.month.type === CONSTANTS.TYPE_UNSPECIFIED)) {
+            result += ` of every month`;
+        }
+
+        for (let key of order) {
+            if (cron[key].type != CONSTANTS.TYPE_WILDCARD && cron[key].type != CONSTANTS.TYPE_UNSPECIFIED) {
+                result += `, ${this.getString(key, cron[key])}`;
+            }
+        }
+
+        return result + '.';
+    }
+
+    public getString(type: string, value: UnitDefinition) {
+        switch(type) {
+            case 'dayOfMonth':
+                return this.getDayOfMonthString(value);
+            case 'month':
+                return this.getMonthString(value);
+            case 'dayOfWeek':
+                return this.getDayOfWeekString(value);
+            case 'year':
+                return this.getYearString(value);
+            default:
+                throw new Error('Something went wrong.');
+        }
     }
 
     public getTimeString(seconds: UnitDefinition, minutes: UnitDefinition, hours: UnitDefinition): string {
@@ -210,6 +254,8 @@ export class CronParser {
             return `at ${this.padZero(hours.single)}:${this.padZero(minutes.single)}${seconds.single === 0 ? '' : ':' + this.padZero(seconds.single)}`;
         } else if (seconds.type === CONSTANTS.TYPE_WILDCARD && minutes.type === CONSTANTS.TYPE_WILDCARD && hours.type === CONSTANTS.TYPE_WILDCARD) {
             return 'every second';
+        } else if (seconds.type === CONSTANTS.TYPE_INTERVAL && minutes.type === CONSTANTS.TYPE_WILDCARD) {
+            return `${this.getSecondsString(seconds)}, ${this.getHoursString(hours)}`
         } else {
             return `${this.getSecondsString(seconds)}, ${this.getMinutesString(minutes)}, ${this.getHoursString(hours)}`;
         }
@@ -219,7 +265,7 @@ export class CronParser {
         switch(seconds.type) {
             case CONSTANTS.TYPE_WILDCARD:
                 return 'every second';
-            case CONSTANTS.UNSPECIFIED:
+            case CONSTANTS.TYPE_UNSPECIFIED:
                 return '';
             case CONSTANTS.TYPE_RANGE:
                 return `every second from ${seconds.range.start} through ${seconds.range.end}`;
@@ -238,7 +284,7 @@ export class CronParser {
         switch(minutes.type) {
             case CONSTANTS.TYPE_WILDCARD:
                 return 'every minute';
-            case CONSTANTS.UNSPECIFIED:
+            case CONSTANTS.TYPE_UNSPECIFIED:
                 return '';
             case CONSTANTS.TYPE_RANGE:
                 return `every minute from ${minutes.range.start} through ${minutes.range.end}`;
@@ -256,7 +302,7 @@ export class CronParser {
     public getHoursString(hours: UnitDefinition) {
         switch(hours.type) {
             case CONSTANTS.TYPE_WILDCARD:
-            case CONSTANTS.UNSPECIFIED:
+            case CONSTANTS.TYPE_UNSPECIFIED:
                 return 'every hour';
             case CONSTANTS.TYPE_RANGE:
                 return `during every hour from ${this.pad(hours.range.start)} through ${this.pad(hours.range.end)}`;
@@ -272,7 +318,8 @@ export class CronParser {
     }
 
     private getOrdinal(value: number): string {
-        switch (value) {
+        let numString = value.toString();
+        switch (parseInt(numString[numString.length - 1])) {
             case 1:
                 return 'st';
             case 2:
@@ -300,11 +347,30 @@ export class CronParser {
             `${value}`;
     }
 
+    public getDayOfMonthString(dayOfMonth: UnitDefinition) {
+        switch(dayOfMonth.type) {
+            case CONSTANTS.TYPE_WILDCARD:
+                return 'every day';
+            case CONSTANTS.TYPE_UNSPECIFIED:
+                return 'every day';
+            case CONSTANTS.TYPE_RANGE:
+                return `between the ${dayOfMonth.range.start + this.getOrdinal(dayOfMonth.range.start)} and ${dayOfMonth.range.end + this.getOrdinal(dayOfMonth.range.end)}`;
+            case CONSTANTS.TYPE_MULTI:
+                return `during the ${dayOfMonth.multi.values.map(this.getOrdinal).join(', ')} and ${dayOfMonth.multi.last}`;
+            case CONSTANTS.TYPE_INTERVAL:
+                let isOne = dayOfMonth.interval.step === 1;
+                return `every ${isOne ? '' : dayOfMonth.interval.step + ' '}day${isOne ? '' : 's'} starting on the ${dayOfMonth.interval.start + this.getOrdinal(dayOfMonth.interval.start)}`;
+            case CONSTANTS.TYPE_SINGLE:
+            default:
+                return `on the ${dayOfMonth.single + this.getOrdinal(dayOfMonth.single)}`
+        }
+    }
+
     public getYearString(years: UnitDefinition) {
         switch(years.type) {
             case CONSTANTS.TYPE_WILDCARD:
                 return 'every year';
-            case CONSTANTS.UNSPECIFIED:
+            case CONSTANTS.TYPE_UNSPECIFIED:
                 return '';
             case CONSTANTS.TYPE_RANGE:
                 return `between ${years.range.start} and ${years.range.end}`;
@@ -323,7 +389,7 @@ export class CronParser {
         switch(months.type) {
             case CONSTANTS.TYPE_WILDCARD:
                 return 'every month';
-            case CONSTANTS.UNSPECIFIED:
+            case CONSTANTS.TYPE_UNSPECIFIED:
                 return '';
             case CONSTANTS.TYPE_RANGE:
                 return `in the months of ${this.getMonthName(months.range.start)} through ${this.getMonthName(months.range.end)}`;
@@ -346,18 +412,18 @@ export class CronParser {
         switch(days.type) {
             case CONSTANTS.TYPE_WILDCARD:
                 return 'every day';
-            case CONSTANTS.UNSPECIFIED:
+            case CONSTANTS.TYPE_UNSPECIFIED:
                 return '';
             case CONSTANTS.TYPE_RANGE:
-                return `every day from ${this.getDayOfWeekName(days.range.start)} through ${this.getDayOfWeekName(days.range.end)}`;
+                return `only from ${this.getDayOfWeekName(days.range.start)} through ${this.getDayOfWeekName(days.range.end)}`;
             case CONSTANTS.TYPE_MULTI:
-                return `every ${days.multi.values.map(this.getDayOfWeekName).join(', ')} and ${this.getDayOfWeekName(days.multi.last)}`;
+                return `only on ${days.multi.values.map(this.getDayOfWeekName).join(', ')} and ${this.getDayOfWeekName(days.multi.last)}`;
             case CONSTANTS.TYPE_INTERVAL:
                 let isOne = days.interval.step === 1;
                 return `every ${isOne ? '' : days.interval.step + ' '}day${isOne ? '' : 's'} starting on ${this.getDayOfWeekName(days.interval.start)}`;
             case CONSTANTS.TYPE_SINGLE:
             default:
-                return `every ${this.getDayOfWeekName(days.single)}`;
+                return `only on ${this.getDayOfWeekName(days.single)}s`;
         }
     }
 
@@ -365,3 +431,5 @@ export class CronParser {
         return CONSTANTS.FULL_DAYS[day - 1];
     }
 }
+
+export var CronHumanize = new CronParser();

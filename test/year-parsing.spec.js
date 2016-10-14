@@ -1,9 +1,8 @@
 "use strict";
 var expect = require('chai').expect;
 var testCases = require('./testCases.json');
-var UnitDefinition = require('../dist/cron-parser').UnitDefinition;
-var CronParser = require('../dist/cron-parser').CronParser;
-let parser = new CronParser();
+var UnitDefinition = require('../dist/cron-humanize').UnitDefinition;
+var parser = require('../dist/cron-humanize').CronHumanize;
 
 describe('getYearString', function() {
 

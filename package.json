@@ -1,6 +1,6 @@
 {
   "name": "cron-humanize",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Cron to human translator",
   "main": "dist/cron-humanize.js",
   "directories": {

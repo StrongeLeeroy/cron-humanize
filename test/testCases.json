@@ -1,16 +1,33 @@
 [
   {
-    "expression": "0 0 0 * * ? *",
-    "dissection": {
-      "seconds": "0",
-      "minutes": "0",
-      "hours": "0",
-      "dayOfMonth": "*",
-      "month": "*",
-      "dayOfWeek": "?",
-      "year": "*"
-    },
-    "minResult": "Fire at 00:00AM, every day.",
-    "result": "Fire at 00:00AM, every day, every month, every year."
+    "expression": "0 0 12 * ? * ?",
+    "result": "Fire at 12:00, every day."
+  }, {
+    "expression": "0 15 10 ? * * ?",
+    "result": "Fire at 10:15, every day."
+  }, {
+    "expression": "0 15 10 * * ? ?",
+    "result": "Fire at 10:15, every day."
+  }, {
+    "expression": "0 15 10 * * ? *",
+    "result": "Fire at 10:15, every day."
+  }, {
+    "expression": "0 15 10 * * ? 2005",
+    "result": "Fire at 10:15, every day, during 2005."
+  }, {
+    "expression": "0 * 14 * * ? ?",
+    "result": "Fire at second 0, every minute, at 14:00, every day."
+  }, {
+    "expression": "0 0/5 14 * * ? ?",
+    "result": "Fire at second 0, every 5th minute, at 14:00, every day."
+  }, {
+    "expression": "0 0/5 14,18 * * ? ?",
+    "result": "Fire at second 0, every 5th minute, during the hours 14:00 and 18:00, every day."
+  }, {
+    "expression": "0 0-5 14 * * ? ?",
+    "result": "Fire at second 0, every minute from 0 through 5, at 14:00, every day."
+  }, {
+    "expression": "0 10,44 14 ? 3 WED ?",
+    "result": "Fire at second 0, at minutes 10 and 44, at 14:00, every day, in the month of April, only on Wednesdays."
   }
 ]

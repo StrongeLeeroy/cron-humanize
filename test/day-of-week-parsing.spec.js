@@ -1,10 +1,9 @@
 "use strict";
 var expect = require('chai').expect;
 var testCases = require('./testCases.json');
-var UnitDefinition = require('../dist/cron-parser').UnitDefinition;
-var CronParser = require('../dist/cron-parser').CronParser;
-const CONSTANTS = require('../dist/cron-parser').CONSTANTS;
-let parser = new CronParser();
+var UnitDefinition = require('../dist/cron-humanize').UnitDefinition;
+var parser = require('../dist/cron-humanize').CronHumanize;
+const CONSTANTS = require('../dist/cron-humanize').CONSTANTS;
 
 describe('getDayOfWeekName', function() {
 
@@ -36,31 +35,31 @@ describe('getDayOfWeekString', function() {
     it('should return a valid string when a single day is supplied', function () {
         let testCase = new UnitDefinition('WED', CONSTANTS.SHORT_DAYS, 1);
         expect(parser.getDayOfWeekString(testCase)).to.be.a('string');
-        expect(parser.getDayOfWeekString(testCase)).to.equal('every Wednesday');
+        expect(parser.getDayOfWeekString(testCase)).to.equal('only on Wednesdays');
 
         testCase = new UnitDefinition('3', CONSTANTS.SHORT_DAYS, 1);
         expect(parser.getDayOfWeekString(testCase)).to.be.a('string');
-        expect(parser.getDayOfWeekString(testCase)).to.equal('every Wednesday');
+        expect(parser.getDayOfWeekString(testCase)).to.equal('only on Wednesdays');
     });
 
     it('should return a valid string when multiple days are supplied', function () {
         let testCase = new UnitDefinition('MON,TUE,FRI', CONSTANTS.SHORT_DAYS, 1);
         expect(parser.getDayOfWeekString(testCase)).to.be.a('string');
-        expect(parser.getDayOfWeekString(testCase)).to.equal('every Monday, Tuesday and Friday');
+        expect(parser.getDayOfWeekString(testCase)).to.equal('only on Monday, Tuesday and Friday');
 
         testCase = new UnitDefinition('1,2,5', CONSTANTS.SHORT_DAYS, 1);
         expect(parser.getDayOfWeekString(testCase)).to.be.a('string');
-        expect(parser.getDayOfWeekString(testCase)).to.equal('every Monday, Tuesday and Friday');
+        expect(parser.getDayOfWeekString(testCase)).to.equal('only on Monday, Tuesday and Friday');
     });
 
     it('should return a valid string when a day range is supplied', function () {
         let testCase = new UnitDefinition('TUE-SAT', CONSTANTS.SHORT_DAYS, 1);
         expect(parser.getDayOfWeekString(testCase)).to.be.a('string');
-        expect(parser.getDayOfWeekString(testCase)).to.equal('every day from Tuesday through Saturday');
+        expect(parser.getDayOfWeekString(testCase)).to.equal('only from Tuesday through Saturday');
 
         testCase = new UnitDefinition('2-6', CONSTANTS.SHORT_DAYS, 1);
         expect(parser.getDayOfWeekString(testCase)).to.be.a('string');
-        expect(parser.getDayOfWeekString(testCase)).to.equal('every day from Tuesday through Saturday');
+        expect(parser.getDayOfWeekString(testCase)).to.equal('only from Tuesday through Saturday');
     });
 
     it('should return a valid string when an increment is supplied', function() {
