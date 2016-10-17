@@ -6,14 +6,14 @@
     "expression": "0 15 10 ? * * ?",
     "result": "Fire at 10:15, every day."
   }, {
-    "expression": "0 15 10 * * ? ?",
-    "result": "Fire at 10:15, every day."
+    "expression": "0 16 10 * * ? ?",
+    "result": "Fire at 10:16, every day."
   }, {
-    "expression": "0 15 10 * * ? *",
-    "result": "Fire at 10:15, every day."
+    "expression": "0 17 10 * * ? *",
+    "result": "Fire at 10:17, every day."
   }, {
-    "expression": "0 15 10 * * ? 2005",
-    "result": "Fire at 10:15, every day, during 2005."
+    "expression": "0 18 10 * * ? 2005",
+    "result": "Fire at 10:18, every day, during 2005."
   }, {
     "expression": "0 * 14 * * ? ?",
     "result": "Fire at second 0, every minute, at 14:00, every day."

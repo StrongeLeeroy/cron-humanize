@@ -5,6 +5,12 @@ interface CronConstants {
     WILDCARD: string;
     UNSPECIFIED: string;
     SLASH: string;
+    SPECIFIC: string;
+    LAST_DAY: string;
+    LAST_WEEKDAY_MONTH: string;
+
+    NEAREST_WEEKDAY: RegExp;
+    LAST_WEEKDAY_SPECIFIC: RegExp;
 
     TYPE_MULTI: string;
     TYPE_RANGE: string;
@@ -12,6 +18,13 @@ interface CronConstants {
     TYPE_WILDCARD: string;
     TYPE_UNSPECIFIED: string;
     TYPE_INTERVAL: string;
+    TYPE_SPECIFIC: string;
+
+    TYPE_LAST_DAY: string;
+    TYPE_LAST_WEEKDAY_MONTH: string;
+
+    TYPE_NEAREST_WEEKDAY: string;
+    TYPE_LAST_WEEKDAY_SPECIFIC: string;
 
     SHORT_DAYS: string[];
     FULL_DAYS: string[];
@@ -33,6 +46,8 @@ interface CronDissection {
 interface MultiDef { values: number[], last: number }
 interface RangeDef { start: number, end: number }
 interface IntervalDef { start: number, step: number }
+interface SpecificDef { week: number, day: number }
+interface DaySpecificDef { day: number }
 
 export const CONSTANTS: CronConstants = {
     SEPARATOR: ' ',
@@ -41,14 +56,28 @@ export const CONSTANTS: CronConstants = {
     WILDCARD: '*',
     UNSPECIFIED: '?',
     SLASH: '/',
+    SPECIFIC: '#',
+
+    LAST_DAY: 'L',
+    LAST_WEEKDAY_MONTH: 'LW',
+    NEAREST_WEEKDAY: /([0-9]?[0-9])W/,
+    LAST_WEEKDAY_SPECIFIC: /([0-9]?[0-9])L/,
+
     TYPE_MULTI: 'multi',
     TYPE_RANGE: 'range',
     TYPE_SINGLE: 'single',
     TYPE_WILDCARD: 'wildcard',
     TYPE_UNSPECIFIED: 'unspecified',
     TYPE_INTERVAL: 'interval',
-    SHORT_DAYS: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'],
-    FULL_DAYS: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+    TYPE_SPECIFIC: 'specific',
+
+    TYPE_LAST_DAY: 'last_day',
+    TYPE_LAST_WEEKDAY_MONTH: 'last_weekday_month',
+    TYPE_NEAREST_WEEKDAY: 'nearest_weekday',
+    TYPE_LAST_WEEKDAY_SPECIFIC: 'last_weekday_specific',
+
+    SHORT_DAYS: ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'],
+    FULL_DAYS: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
     SHORT_MONTHS: ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'],
     FULL_MONTHS: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
 };
@@ -59,12 +88,23 @@ export class UnitDefinition {
     public multi: MultiDef;
     public range: RangeDef;
     public interval: IntervalDef;
+    public specific: SpecificDef;
+
+    // TODO: Add L, LW, _L and _W
+    public lastDay: string;
+    public lastWeekdayMonth: string;
+    public nearestWeekday: DaySpecificDef;
+    public lastWeekdaySpecific: DaySpecificDef;
 
     public unspecified: string;
     public wildcard: string;
     public single: number;
 
-    constructor(private rawData: string, private names?: string[], private indexBase?: number) {
+    constructor(public rawData: string,
+                public min: number,
+                public max: number,
+                public names?: string[],
+                private indexBase?: number) {
         this.type = this.setType(rawData);
         switch(this.type) {
             case CONSTANTS.TYPE_MULTI:
@@ -82,8 +122,23 @@ export class UnitDefinition {
             case CONSTANTS.TYPE_WILDCARD:
                 this.wildcard = this.getDef(rawData);
                 break;
+            case CONSTANTS.TYPE_SPECIFIC:
+                this.specific = this.getSpecificDef(rawData);
+                break;
             case CONSTANTS.TYPE_SINGLE:
                 this.single = this.getSingleDef(rawData);
+                break;
+            case CONSTANTS.TYPE_LAST_DAY:
+                this.lastDay = this.getDef(rawData);
+                break;
+            case CONSTANTS.TYPE_LAST_WEEKDAY_MONTH:
+                this.lastWeekdayMonth = this.getDef(rawData);
+                break;
+            case CONSTANTS.TYPE_NEAREST_WEEKDAY:
+                this.nearestWeekday = this.getDaySpecificDef(rawData);
+                break;
+            case CONSTANTS.TYPE_LAST_WEEKDAY_SPECIFIC:
+                this.lastWeekdaySpecific = this.getDaySpecificDef(rawData);
                 break;
         }
     }
@@ -91,16 +146,24 @@ export class UnitDefinition {
     public setType(value: string): string {
         if (value.indexOf(CONSTANTS.COMA) > 0) {
             return CONSTANTS.TYPE_MULTI;
-        } else if (value.indexOf(CONSTANTS.WILDCARD) >= 0) {
+        } else if (value === CONSTANTS.WILDCARD) {
             return CONSTANTS.TYPE_WILDCARD;
-        } else if (value.indexOf(CONSTANTS.UNSPECIFIED) >= 0) {
+        } else if (value === CONSTANTS.UNSPECIFIED) {
             return CONSTANTS.TYPE_UNSPECIFIED;
         } else if (value.indexOf(CONSTANTS.SLASH) > 0) {
             return CONSTANTS.TYPE_INTERVAL;
         } else if (value.indexOf(CONSTANTS.DASH) > 0) {
             return CONSTANTS.TYPE_RANGE;
-        } else {
+        } else if (value.indexOf(CONSTANTS.SPECIFIC)) {
             return CONSTANTS.TYPE_SINGLE;
+        } else if (value === CONSTANTS.LAST_DAY) {
+            return CONSTANTS.TYPE_LAST_DAY;
+        } else if (value === CONSTANTS.LAST_WEEKDAY_MONTH) {
+            return CONSTANTS.TYPE_LAST_WEEKDAY_MONTH;
+        } else if (CONSTANTS.NEAREST_WEEKDAY.test(value)) {
+            return CONSTANTS.TYPE_NEAREST_WEEKDAY;
+        } else if (CONSTANTS.LAST_WEEKDAY_SPECIFIC.test(value)) {
+            return CONSTANTS.TYPE_LAST_WEEKDAY_SPECIFIC;
         }
     }
 
@@ -123,11 +186,24 @@ export class UnitDefinition {
         };
     }
     private getIntervalDef(value: string): IntervalDef {
-        let interval = value.split('/').map(current => this.checkForNamed(current));
+        let interval = value.split(CONSTANTS.SLASH).map(current => this.checkForNamed(current));
         return {
             start: interval[0],
             step: interval[1]
         };
+    }
+
+    private getSpecificDef(value: string): SpecificDef {
+        let specific = value.split(CONSTANTS.SPECIFIC).map(current => this.checkForNamed(current));
+        return {
+            week: specific[1],
+            day: specific[0]
+        }
+    }
+
+    private getDaySpecificDef(value: string): DaySpecificDef {
+        let regex = /([0-9]?[0-9])[WL]/;
+        return { day: parseInt(value.match(regex)[1]) };
     }
 
     private getDef(value: string): string {
@@ -155,19 +231,72 @@ export class CronExpression {
     public dayOfWeek: UnitDefinition;
     public year: UnitDefinition;
 
+    private cron: UnitDefinition[];
+
     [key: string]: any;
 
     constructor(private expressionString: string) {
         this.setDissection(expressionString);
 
-        this.seconds = new UnitDefinition(this.dissection.seconds);
-        this.minutes = new UnitDefinition(this.dissection.minutes);
-        this.hours = new UnitDefinition(this.dissection.hours);
+        this.seconds = new UnitDefinition(this.dissection.seconds, 0, 59);
+        this.minutes = new UnitDefinition(this.dissection.minutes, 0, 59);
+        this.hours = new UnitDefinition(this.dissection.hours, 0, 23);
 
-        this.dayOfMonth = new UnitDefinition(this.dissection.dayOfMonth);
-        this.month = new UnitDefinition(this.dissection.month, CONSTANTS.SHORT_MONTHS, 0);
-        this.dayOfWeek = new UnitDefinition(this.dissection.dayOfWeek, CONSTANTS.SHORT_DAYS, 1);
-        this.year = new UnitDefinition(this.dissection.year);
+        this.dayOfMonth = new UnitDefinition(this.dissection.dayOfMonth, 1, 31);
+        this.month = new UnitDefinition(this.dissection.month, 1, 12, CONSTANTS.SHORT_MONTHS, 0);
+        this.dayOfWeek = new UnitDefinition(this.dissection.dayOfWeek, 1, 7, CONSTANTS.SHORT_DAYS, 1);
+        this.year = this.dissection.year ? new UnitDefinition(this.dissection.year, 1970, 2099) : null;
+
+        this.cron = [this.seconds, this.minutes, this.hours, this.dayOfMonth, this.month, this.dayOfWeek, this.year];
+    }
+
+    public isValid(): boolean {
+        for (let unit of this.cron) {
+            switch (unit.type) {
+                case CONSTANTS.TYPE_SINGLE:
+                    return this.validateSingle(unit);
+                case CONSTANTS.TYPE_UNSPECIFIED:
+                    return this.validateUnspecified(unit);
+                case CONSTANTS.TYPE_WILDCARD:
+                    return this.validateWildcard(unit);
+                case CONSTANTS.TYPE_MULTI:
+                    return this.validateMulti(unit);
+                case CONSTANTS.TYPE_INTERVAL:
+                    return this.validateInterval(unit);
+                case CONSTANTS.TYPE_RANGE:
+                    return this.validateRange(unit);
+                case CONSTANTS.TYPE_SPECIFIC:
+                    return this.validateSpecific(unit);
+            }
+        }
+    }
+
+    private validateSingle(unit: UnitDefinition): boolean {
+        return unit.single >= unit.min && unit.single <= unit.max;
+    }
+
+    private validateUnspecified(unit: UnitDefinition): boolean {
+        return unit.unspecified === CONSTANTS.UNSPECIFIED;
+    }
+
+    private validateWildcard(unit: UnitDefinition): boolean {
+        return unit.wildcard === CONSTANTS.WILDCARD;
+    }
+
+    private validateMulti(unit: UnitDefinition): boolean {
+        return unit.multi.values.every(value => value >= unit.min && value <= unit.max);
+    }
+
+    private validateInterval(unit: UnitDefinition): boolean {
+        return unit.interval.start >= unit.min && unit.interval.start <= unit.max;
+    }
+
+    private validateRange(unit: UnitDefinition): boolean {
+        return unit.range.start < unit.range.end && unit.range.start >= unit.min && unit.range.end <= unit.max;
+    }
+
+    private validateSpecific(unit: UnitDefinition): boolean {
+        return unit.specific.day >= 1 && unit.specific.day <= 7 && unit.specific.week >= 1 && unit.specific.week <= 5;
     }
 
     public getKey(key: string): any {
@@ -360,6 +489,12 @@ class CronParser {
             case CONSTANTS.TYPE_INTERVAL:
                 let isOne = dayOfMonth.interval.step === 1;
                 return `every ${isOne ? '' : dayOfMonth.interval.step + ' '}day${isOne ? '' : 's'} starting on the ${dayOfMonth.interval.start + this.getOrdinal(dayOfMonth.interval.start)}`;
+            case CONSTANTS.TYPE_NEAREST_WEEKDAY:
+                return `on the weekday nearest to day ${dayOfMonth.nearestWeekday.day} of the month`;
+            case CONSTANTS.TYPE_LAST_WEEKDAY_MONTH:
+                return `on the last weekday of the month`;
+            case CONSTANTS.TYPE_LAST_DAY:
+                return `on the last day of the month`;
             case CONSTANTS.TYPE_SINGLE:
             default:
                 return `on the ${dayOfMonth.single + this.getOrdinal(dayOfMonth.single)}`
@@ -421,6 +556,12 @@ class CronParser {
             case CONSTANTS.TYPE_INTERVAL:
                 let isOne = days.interval.step === 1;
                 return `every ${isOne ? '' : days.interval.step + ' '}day${isOne ? '' : 's'} starting on ${this.getDayOfWeekName(days.interval.start)}`;
+            case CONSTANTS.TYPE_SPECIFIC:
+                return `on the ${days.specific.week + this.getOrdinal(days.specific.week)} ${this.getDayOfWeekName(days.specific.day)} of the month`;
+            case CONSTANTS.TYPE_LAST_WEEKDAY_SPECIFIC:
+                return `on the last ${this.getDayOfWeekName(days.lastWeekdaySpecific.day)} of the month`;
+            case CONSTANTS.TYPE_LAST_DAY:
+                return `on the last Saturday of the month`;
             case CONSTANTS.TYPE_SINGLE:
             default:
                 return `only on ${this.getDayOfWeekName(days.single)}s`;

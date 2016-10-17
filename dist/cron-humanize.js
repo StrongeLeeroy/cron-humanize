@@ -6,20 +6,32 @@ exports.CONSTANTS = {
     WILDCARD: '*',
     UNSPECIFIED: '?',
     SLASH: '/',
+    SPECIFIC: '#',
+    LAST_DAY: 'L',
+    LAST_WEEKDAY_MONTH: 'LW',
+    NEAREST_WEEKDAY: /([0-9]?[0-9])W/,
+    LAST_WEEKDAY_SPECIFIC: /([0-9]?[0-9])L/,
     TYPE_MULTI: 'multi',
     TYPE_RANGE: 'range',
     TYPE_SINGLE: 'single',
     TYPE_WILDCARD: 'wildcard',
     TYPE_UNSPECIFIED: 'unspecified',
     TYPE_INTERVAL: 'interval',
-    SHORT_DAYS: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'],
-    FULL_DAYS: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+    TYPE_SPECIFIC: 'specific',
+    TYPE_LAST_DAY: 'last_day',
+    TYPE_LAST_WEEKDAY_MONTH: 'last_weekday_month',
+    TYPE_NEAREST_WEEKDAY: 'nearest_weekday',
+    TYPE_LAST_WEEKDAY_SPECIFIC: 'last_weekday_specific',
+    SHORT_DAYS: ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'],
+    FULL_DAYS: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
     SHORT_MONTHS: ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'],
     FULL_MONTHS: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
 };
 var UnitDefinition = (function () {
-    function UnitDefinition(rawData, names, indexBase) {
+    function UnitDefinition(rawData, min, max, names, indexBase) {
         this.rawData = rawData;
+        this.min = min;
+        this.max = max;
         this.names = names;
         this.indexBase = indexBase;
         this.type = this.setType(rawData);
@@ -39,8 +51,23 @@ var UnitDefinition = (function () {
             case exports.CONSTANTS.TYPE_WILDCARD:
                 this.wildcard = this.getDef(rawData);
                 break;
+            case exports.CONSTANTS.TYPE_SPECIFIC:
+                this.specific = this.getSpecificDef(rawData);
+                break;
             case exports.CONSTANTS.TYPE_SINGLE:
                 this.single = this.getSingleDef(rawData);
+                break;
+            case exports.CONSTANTS.TYPE_LAST_DAY:
+                this.lastDay = this.getDef(rawData);
+                break;
+            case exports.CONSTANTS.TYPE_LAST_WEEKDAY_MONTH:
+                this.lastWeekdayMonth = this.getDef(rawData);
+                break;
+            case exports.CONSTANTS.TYPE_NEAREST_WEEKDAY:
+                this.nearestWeekday = this.getDaySpecificDef(rawData);
+                break;
+            case exports.CONSTANTS.TYPE_LAST_WEEKDAY_SPECIFIC:
+                this.lastWeekdaySpecific = this.getDaySpecificDef(rawData);
                 break;
         }
     }
@@ -48,10 +75,10 @@ var UnitDefinition = (function () {
         if (value.indexOf(exports.CONSTANTS.COMA) > 0) {
             return exports.CONSTANTS.TYPE_MULTI;
         }
-        else if (value.indexOf(exports.CONSTANTS.WILDCARD) >= 0) {
+        else if (value === exports.CONSTANTS.WILDCARD) {
             return exports.CONSTANTS.TYPE_WILDCARD;
         }
-        else if (value.indexOf(exports.CONSTANTS.UNSPECIFIED) >= 0) {
+        else if (value === exports.CONSTANTS.UNSPECIFIED) {
             return exports.CONSTANTS.TYPE_UNSPECIFIED;
         }
         else if (value.indexOf(exports.CONSTANTS.SLASH) > 0) {
@@ -60,8 +87,20 @@ var UnitDefinition = (function () {
         else if (value.indexOf(exports.CONSTANTS.DASH) > 0) {
             return exports.CONSTANTS.TYPE_RANGE;
         }
-        else {
+        else if (value.indexOf(exports.CONSTANTS.SPECIFIC)) {
             return exports.CONSTANTS.TYPE_SINGLE;
+        }
+        else if (value === exports.CONSTANTS.LAST_DAY) {
+            return exports.CONSTANTS.TYPE_LAST_DAY;
+        }
+        else if (value === exports.CONSTANTS.LAST_WEEKDAY_MONTH) {
+            return exports.CONSTANTS.TYPE_LAST_WEEKDAY_MONTH;
+        }
+        else if (exports.CONSTANTS.NEAREST_WEEKDAY.test(value)) {
+            return exports.CONSTANTS.TYPE_NEAREST_WEEKDAY;
+        }
+        else if (exports.CONSTANTS.LAST_WEEKDAY_SPECIFIC.test(value)) {
+            return exports.CONSTANTS.TYPE_LAST_WEEKDAY_SPECIFIC;
         }
     };
     UnitDefinition.prototype.checkForNamed = function (value) {
@@ -82,11 +121,23 @@ var UnitDefinition = (function () {
     };
     UnitDefinition.prototype.getIntervalDef = function (value) {
         var _this = this;
-        var interval = value.split('/').map(function (current) { return _this.checkForNamed(current); });
+        var interval = value.split(exports.CONSTANTS.SLASH).map(function (current) { return _this.checkForNamed(current); });
         return {
             start: interval[0],
             step: interval[1]
         };
+    };
+    UnitDefinition.prototype.getSpecificDef = function (value) {
+        var _this = this;
+        var specific = value.split(exports.CONSTANTS.SPECIFIC).map(function (current) { return _this.checkForNamed(current); });
+        return {
+            week: specific[1],
+            day: specific[0]
+        };
+    };
+    UnitDefinition.prototype.getDaySpecificDef = function (value) {
+        var regex = /([0-9]?[0-9])[WL]/;
+        return { day: parseInt(value.match(regex)[1]) };
     };
     UnitDefinition.prototype.getDef = function (value) {
         return value;
@@ -104,14 +155,57 @@ var CronExpression = (function () {
     function CronExpression(expressionString) {
         this.expressionString = expressionString;
         this.setDissection(expressionString);
-        this.seconds = new UnitDefinition(this.dissection.seconds);
-        this.minutes = new UnitDefinition(this.dissection.minutes);
-        this.hours = new UnitDefinition(this.dissection.hours);
-        this.dayOfMonth = new UnitDefinition(this.dissection.dayOfMonth);
-        this.month = new UnitDefinition(this.dissection.month, exports.CONSTANTS.SHORT_MONTHS, 0);
-        this.dayOfWeek = new UnitDefinition(this.dissection.dayOfWeek, exports.CONSTANTS.SHORT_DAYS, 1);
-        this.year = new UnitDefinition(this.dissection.year);
+        this.seconds = new UnitDefinition(this.dissection.seconds, 0, 59);
+        this.minutes = new UnitDefinition(this.dissection.minutes, 0, 59);
+        this.hours = new UnitDefinition(this.dissection.hours, 0, 23);
+        this.dayOfMonth = new UnitDefinition(this.dissection.dayOfMonth, 1, 31);
+        this.month = new UnitDefinition(this.dissection.month, 1, 12, exports.CONSTANTS.SHORT_MONTHS, 0);
+        this.dayOfWeek = new UnitDefinition(this.dissection.dayOfWeek, 1, 7, exports.CONSTANTS.SHORT_DAYS, 1);
+        this.year = this.dissection.year ? new UnitDefinition(this.dissection.year, 1970, 2099) : null;
+        this.cron = [this.seconds, this.minutes, this.hours, this.dayOfMonth, this.month, this.dayOfWeek, this.year];
     }
+    CronExpression.prototype.isValid = function () {
+        for (var _i = 0, _a = this.cron; _i < _a.length; _i++) {
+            var unit = _a[_i];
+            switch (unit.type) {
+                case exports.CONSTANTS.TYPE_SINGLE:
+                    return this.validateSingle(unit);
+                case exports.CONSTANTS.TYPE_UNSPECIFIED:
+                    return this.validateUnspecified(unit);
+                case exports.CONSTANTS.TYPE_WILDCARD:
+                    return this.validateWildcard(unit);
+                case exports.CONSTANTS.TYPE_MULTI:
+                    return this.validateMulti(unit);
+                case exports.CONSTANTS.TYPE_INTERVAL:
+                    return this.validateInterval(unit);
+                case exports.CONSTANTS.TYPE_RANGE:
+                    return this.validateRange(unit);
+                case exports.CONSTANTS.TYPE_SPECIFIC:
+                    return this.validateSpecific(unit);
+            }
+        }
+    };
+    CronExpression.prototype.validateSingle = function (unit) {
+        return unit.single >= unit.min && unit.single <= unit.max;
+    };
+    CronExpression.prototype.validateUnspecified = function (unit) {
+        return unit.unspecified === exports.CONSTANTS.UNSPECIFIED;
+    };
+    CronExpression.prototype.validateWildcard = function (unit) {
+        return unit.wildcard === exports.CONSTANTS.WILDCARD;
+    };
+    CronExpression.prototype.validateMulti = function (unit) {
+        return unit.multi.values.every(function (value) { return value >= unit.min && value <= unit.max; });
+    };
+    CronExpression.prototype.validateInterval = function (unit) {
+        return unit.interval.start >= unit.min && unit.interval.start <= unit.max;
+    };
+    CronExpression.prototype.validateRange = function (unit) {
+        return unit.range.start < unit.range.end && unit.range.start >= unit.min && unit.range.end <= unit.max;
+    };
+    CronExpression.prototype.validateSpecific = function (unit) {
+        return unit.specific.day >= 1 && unit.specific.day <= 7 && unit.specific.week >= 1 && unit.specific.week <= 5;
+    };
     CronExpression.prototype.getKey = function (key) {
         return this[key];
     };
@@ -289,6 +383,12 @@ var CronParser = (function () {
             case exports.CONSTANTS.TYPE_INTERVAL:
                 var isOne = dayOfMonth.interval.step === 1;
                 return "every " + (isOne ? '' : dayOfMonth.interval.step + ' ') + "day" + (isOne ? '' : 's') + " starting on the " + (dayOfMonth.interval.start + this.getOrdinal(dayOfMonth.interval.start));
+            case exports.CONSTANTS.TYPE_NEAREST_WEEKDAY:
+                return "on the weekday nearest to day " + dayOfMonth.nearestWeekday.day + " of the month";
+            case exports.CONSTANTS.TYPE_LAST_WEEKDAY_MONTH:
+                return "on the last weekday of the month";
+            case exports.CONSTANTS.TYPE_LAST_DAY:
+                return "on the last day of the month";
             case exports.CONSTANTS.TYPE_SINGLE:
             default:
                 return "on the " + (dayOfMonth.single + this.getOrdinal(dayOfMonth.single));
@@ -346,6 +446,12 @@ var CronParser = (function () {
             case exports.CONSTANTS.TYPE_INTERVAL:
                 var isOne = days.interval.step === 1;
                 return "every " + (isOne ? '' : days.interval.step + ' ') + "day" + (isOne ? '' : 's') + " starting on " + this.getDayOfWeekName(days.interval.start);
+            case exports.CONSTANTS.TYPE_SPECIFIC:
+                return "on the " + (days.specific.week + this.getOrdinal(days.specific.week)) + " " + this.getDayOfWeekName(days.specific.day) + " of the month";
+            case exports.CONSTANTS.TYPE_LAST_WEEKDAY_SPECIFIC:
+                return "on the last " + this.getDayOfWeekName(days.lastWeekdaySpecific.day) + " of the month";
+            case exports.CONSTANTS.TYPE_LAST_DAY:
+                return "on the last Saturday of the month";
             case exports.CONSTANTS.TYPE_SINGLE:
             default:
                 return "only on " + this.getDayOfWeekName(days.single) + "s";

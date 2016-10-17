@@ -5,10 +5,19 @@
 
 Transforms cron expressions into human speech.
 
-**NOTE**
-Currently under development. Not feature complete.
 
+Examples:
 
-Example:
-
-    CronParser.humanize('* * * * * * *'); // Fire every second, every day, every month, every year.
+    CronParser.humanize('* * * * * * *');
+    // Fire every second, every day.
+    
+    CronParser.humanize('10-20 10/1 12/1 ? 5/FEB 2-THU 2020-2022');
+    // Fire every second from 10 through 20, every minute starting at minute 10, past every hour starting at 12:00, every day, every month starting on June, only from Monday through Thursday, between 2020 and 2022.
+    
+    
+#### IN PROGRESS:
+    - Support for L, LW, _L and _W units.
+    
+#### TODO:
+    - Optional year parameter.
+    - Optional second parameter.
