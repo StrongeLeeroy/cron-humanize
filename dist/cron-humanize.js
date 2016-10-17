@@ -357,4 +357,3 @@ var CronParser = (function () {
     return CronParser;
 }());
 exports.CronHumanize = new CronParser();
-//# sourceMappingURL=cron-humanize.js.map
