@@ -154,8 +154,8 @@ export class UnitDefinition {
             return CONSTANTS.TYPE_INTERVAL;
         } else if (value.indexOf(CONSTANTS.DASH) > 0) {
             return CONSTANTS.TYPE_RANGE;
-        } else if (value.indexOf(CONSTANTS.SPECIFIC)) {
-            return CONSTANTS.TYPE_SINGLE;
+        } else if (value.indexOf(CONSTANTS.SPECIFIC) > 0) {
+            return CONSTANTS.TYPE_SPECIFIC;
         } else if (value === CONSTANTS.LAST_DAY) {
             return CONSTANTS.TYPE_LAST_DAY;
         } else if (value === CONSTANTS.LAST_WEEKDAY_MONTH) {
@@ -164,6 +164,8 @@ export class UnitDefinition {
             return CONSTANTS.TYPE_NEAREST_WEEKDAY;
         } else if (CONSTANTS.LAST_WEEKDAY_SPECIFIC.test(value)) {
             return CONSTANTS.TYPE_LAST_WEEKDAY_SPECIFIC;
+        } else {
+            return CONSTANTS.TYPE_SINGLE;
         }
     }
 
@@ -355,7 +357,7 @@ class CronParser {
         }
 
         for (let key of order) {
-            if (cron[key].type != CONSTANTS.TYPE_WILDCARD && cron[key].type != CONSTANTS.TYPE_UNSPECIFIED) {
+            if (cron[key].type != CONSTANTS.TYPE_WILDCARD && cron[key].type != CONSTANTS.TYPE_UNSPECIFIED || key === 'dayOfWeek') {
                 result += `, ${this.getString(key, cron[key])}`;
             }
         }
@@ -479,9 +481,9 @@ class CronParser {
     public getDayOfMonthString(dayOfMonth: UnitDefinition) {
         switch(dayOfMonth.type) {
             case CONSTANTS.TYPE_WILDCARD:
-                return 'every day';
+                return '';
             case CONSTANTS.TYPE_UNSPECIFIED:
-                return 'every day';
+                return '';
             case CONSTANTS.TYPE_RANGE:
                 return `between the ${dayOfMonth.range.start + this.getOrdinal(dayOfMonth.range.start)} and ${dayOfMonth.range.end + this.getOrdinal(dayOfMonth.range.end)}`;
             case CONSTANTS.TYPE_MULTI:
@@ -544,11 +546,12 @@ class CronParser {
     }
 
     public getDayOfWeekString(days: UnitDefinition): string {
+        console.log(days)
         switch(days.type) {
             case CONSTANTS.TYPE_WILDCARD:
                 return 'every day';
             case CONSTANTS.TYPE_UNSPECIFIED:
-                return '';
+                return 'every day';
             case CONSTANTS.TYPE_RANGE:
                 return `only from ${this.getDayOfWeekName(days.range.start)} through ${this.getDayOfWeekName(days.range.end)}`;
             case CONSTANTS.TYPE_MULTI:

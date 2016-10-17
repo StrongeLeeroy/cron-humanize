@@ -87,8 +87,8 @@ var UnitDefinition = (function () {
         else if (value.indexOf(exports.CONSTANTS.DASH) > 0) {
             return exports.CONSTANTS.TYPE_RANGE;
         }
-        else if (value.indexOf(exports.CONSTANTS.SPECIFIC)) {
-            return exports.CONSTANTS.TYPE_SINGLE;
+        else if (value.indexOf(exports.CONSTANTS.SPECIFIC) > 0) {
+            return exports.CONSTANTS.TYPE_SPECIFIC;
         }
         else if (value === exports.CONSTANTS.LAST_DAY) {
             return exports.CONSTANTS.TYPE_LAST_DAY;
@@ -101,6 +101,9 @@ var UnitDefinition = (function () {
         }
         else if (exports.CONSTANTS.LAST_WEEKDAY_SPECIFIC.test(value)) {
             return exports.CONSTANTS.TYPE_LAST_WEEKDAY_SPECIFIC;
+        }
+        else {
+            return exports.CONSTANTS.TYPE_SINGLE;
         }
     };
     UnitDefinition.prototype.checkForNamed = function (value) {
@@ -258,7 +261,7 @@ var CronParser = (function () {
         }
         for (var _i = 0, order_1 = order; _i < order_1.length; _i++) {
             var key = order_1[_i];
-            if (cron[key].type != exports.CONSTANTS.TYPE_WILDCARD && cron[key].type != exports.CONSTANTS.TYPE_UNSPECIFIED) {
+            if (cron[key].type != exports.CONSTANTS.TYPE_WILDCARD && cron[key].type != exports.CONSTANTS.TYPE_UNSPECIFIED || key === 'dayOfWeek') {
                 result += ", " + this.getString(key, cron[key]);
             }
         }
@@ -373,9 +376,9 @@ var CronParser = (function () {
     CronParser.prototype.getDayOfMonthString = function (dayOfMonth) {
         switch (dayOfMonth.type) {
             case exports.CONSTANTS.TYPE_WILDCARD:
-                return 'every day';
+                return '';
             case exports.CONSTANTS.TYPE_UNSPECIFIED:
-                return 'every day';
+                return '';
             case exports.CONSTANTS.TYPE_RANGE:
                 return "between the " + (dayOfMonth.range.start + this.getOrdinal(dayOfMonth.range.start)) + " and " + (dayOfMonth.range.end + this.getOrdinal(dayOfMonth.range.end));
             case exports.CONSTANTS.TYPE_MULTI:
@@ -434,11 +437,12 @@ var CronParser = (function () {
         return exports.CONSTANTS.FULL_MONTHS[month];
     };
     CronParser.prototype.getDayOfWeekString = function (days) {
+        console.log(days);
         switch (days.type) {
             case exports.CONSTANTS.TYPE_WILDCARD:
                 return 'every day';
             case exports.CONSTANTS.TYPE_UNSPECIFIED:
-                return '';
+                return 'every day';
             case exports.CONSTANTS.TYPE_RANGE:
                 return "only from " + this.getDayOfWeekName(days.range.start) + " through " + this.getDayOfWeekName(days.range.end);
             case exports.CONSTANTS.TYPE_MULTI:
