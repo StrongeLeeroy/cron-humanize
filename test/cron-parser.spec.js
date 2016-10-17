@@ -26,11 +26,3 @@ describe('humanize', function() {
         });
     });
 });
-
-// describe('dissect', function() {
-//    it('should return a dissected cron expression', function() {
-//        testCases.forEach(function(testCase) {
-//            expect(JSON.stringify(parser.dissect(testCase.expression))).to.equal(JSON.stringify(testCase.dissection));
-//        });
-//    });
-// });
