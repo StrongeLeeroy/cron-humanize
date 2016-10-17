@@ -1,7 +1,7 @@
 "use strict";
 var expect = require('chai').expect;
 var testCases = require('./testCases.json');
-var parser = require('../dist/cron-humanize').CronHumanize;
+var parser = require('../dist/cron-humanize').default;
 
 describe('humanize', function() {
     it('should return a humanized version of the input cron expression', function() {

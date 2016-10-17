@@ -432,4 +432,5 @@ class CronParser {
     }
 }
 
-export var CronHumanize = new CronParser();
+const CronHumanize = new CronParser();
+export default CronHumanize;

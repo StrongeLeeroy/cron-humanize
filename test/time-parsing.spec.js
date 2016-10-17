@@ -2,7 +2,7 @@
 var expect = require('chai').expect;
 var testCases = require('./testCases.json');
 var UnitDefinition = require('../dist/cron-humanize').UnitDefinition;
-var parser = require('../dist/cron-humanize').CronHumanize;
+var parser = require('../dist/cron-humanize').default;
 
 describe('getHoursString', function() {
     it('should return a valid string when a fixed hour is given', function() {

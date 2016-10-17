@@ -2,7 +2,7 @@
 var expect = require('chai').expect;
 var testCases = require('./testCases.json');
 var UnitDefinition = require('../dist/cron-humanize').UnitDefinition;
-var parser = require('../dist/cron-humanize').CronHumanize;
+var parser = require('../dist/cron-humanize').default;
 const CONSTANTS = require('../dist/cron-humanize').CONSTANTS;
 
 describe('getMonthName', function() {

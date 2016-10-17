@@ -356,4 +356,6 @@ var CronParser = (function () {
     };
     return CronParser;
 }());
-exports.CronHumanize = new CronParser();
+var CronHumanize = new CronParser();
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.default = CronHumanize;
