@@ -3,6 +3,10 @@
   "version": "1.0.7",
   "description": "Cron to human translator",
   "main": "dist/cron-humanize.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/StrongeLeeroy/cron-humanize.git"
+  },
   "directories": {
     "test": "test",
     "src": "src",
