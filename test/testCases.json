@@ -25,7 +25,7 @@
     "result": "Fire at second 0, every 5th minute, during the hours 14:00 and 18:00, every day."
   }, {
     "expression": "0 0-5 14 * * ? ?",
-    "result": "Fire at second 0, every minute from 0 through 5, at 14:00, every day."W
+    "result": "Fire at second 0, every minute from 0 through 5, at 14:00, every day."
   }, {
     "expression": "0 10,44 14 ? 3 WED ?",
     "result": "Fire at second 0, at minutes 10 and 44, at 14:00, in the month of April, only on Wednesdays."
